@@ -136,6 +136,10 @@ app {
     top: 0.5rem;
 }
 
+.note-disclaimer {
+    font-size: smaller;
+}
+
 @media (max-width: 767.98px) {
     .main .top-row:not(.auth) {
         display: none;

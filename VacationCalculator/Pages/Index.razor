@@ -1,5 +1,5 @@
-﻿@using VacationCalculator
-@page "/"
+﻿@page "/"
+@using VacationCalculator.ViewModels
 
 <h1>Vacation Calculator</h1>
 <EditForm Model=@vm OnValidSubmit="HandleValidSubmit">
@@ -16,7 +16,7 @@
         Floating Holidays <InputNumber @bind-Value=vm.FloatingHolidays /> days
     </label>
     <br />
-    <h5>Years of Service</h5>
+    Years of Service:
     <label>
         <InputRadio name="yearsOfService" SelectedValue="1" @bind-Value="vm.YearsOfService" />1-9 Years
     </label>
@@ -39,19 +39,28 @@
     }
     else
     {
+        <h5>Available balances:</h5>
         <p>
             Your available vacation is @vm.AvailableVacationHours/@vm.CapHours hours
-            <br />
-            With floating holidays, you have @vm.AvailableVacationDaysWithFloating days of PTO for vacation.
+        </p>
+        <div>
+            <RadzenProgressBar Value=@(Convert.ToInt32(vm.AvailableVacationHours/vm.CapHours * 100)) Style="margin-bottom: 20px; max-width:50%" />
+        </div>
+        <p>
+            You will hit the vacation cap and stop accruing additional vacation time on <b>@vm.CapDate.ToString("d")</b> assuming constant accrual throughout the year. This isn't how it actually works most years because all vacation is earned by early November.
+        </p>
+        <p>
+            With floating holidays, you have <b>@vm.AvailableVacationDaysWithFloating days</b> of PTO for vacation.
         </p>
         <p>
             It takes you @vm.DaysPerDay days to earn an additional vacation day.
         </p>
         <p>
-            Your next <em>full day</em> of vacation will be completed on @vm.NextEarnedDayDate.ToString("d") once you earn @vm.HoursUntilNextFullDay hours.
+            Your next <em>full day</em> of vacation will be completed on @vm.NextEarnedDayDate.ToString("d") once you earn @vm.HoursUntilNextFullDay hours.   
+            <RadzenProgressBar Value=@((1-vm.HoursUntilNextFullDay / 8) * 100) Style="margin-bottom: 20px; max-width:50%" />
         </p>
+        <h5>Next Vacation</h5>
         <p>
-
             <label>
                 How many days do you need for your next vacation? <InputNumber @bind-Value=vm.DesiredDays /> days
             </label>
@@ -69,6 +78,10 @@
                 <p>
                     You will have enough vacation days for your next vacation on @vm.NextVacationEarliestDate.ToString("d")!
                 </p>
+                    @if (vm.NextVacationEarliestDate.Year > DateTime.Now.Year)
+                    {
+                        <p class="note-disclaimer">Note that this date is not in the current year. You get new floating holidays at the beginning of each year, and your vacation accrual rate will change if you cross a years-of-service boundary.</p>
+                    }
             }
         }
     }
@@ -76,155 +89,9 @@
 
 @code
 {
-    VacationModel vm = new VacationModel();
+    VacationManagerViewModel vm = new VacationManagerViewModel();
 
-    class VacationModel
-    {
-        public DateTime AsOfDate { get; set; }
-        public double CurrentYearVacation { get; set; }
-        public double PreviousYearVacation { get; set; }
-        public int FloatingHolidays { get; set; }
-        public int DesiredDays { get; set; }
-        public int CapHours { get; set; }
-
-        private int _yearsOfService;
-        public int YearsOfService
-        {
-            get
-            {
-                return _yearsOfService;
-            }
-            set
-            {
-                _yearsOfService = value;
-                switch (_yearsOfService)
-                {
-                    case 1:
-                        AccrualRate = 8.0 / 15.0;
-                        CapHours = 160;
-                        break;
-                    case 2:
-                        AccrualRate = 8.0 / 11.25;
-                        CapHours = 200;
-                        break;
-                    case 3:
-                        AccrualRate = 8.0 / 9.0;
-                        CapHours = 256;
-                        break;
-                }
-            }
-        }
-
-        /// <summary>
-        /// The rate at which the user accrues vacation in hours-per-hour
-        /// </summary>
-        public double AccrualRate { get; set; }
-
-        /// <summary>
-        /// Total hours available in current and previous year.
-        /// </summary>
-        public double AvailableVacationHours
-        {
-            get
-            {
-                return CurrentYearVacation + PreviousYearVacation;
-            }
-        }
-
-        /// <summary>
-        /// Whole days of vacation that are available.
-        /// </summary>
-        public int AvailableVacationDays
-        {
-            get
-            {
-                return Convert.ToInt32(Math.Floor(AvailableVacationHours / 8));
-            }
-        }
-
-        /// <summary>
-        /// Whole days of vacation that are available, including floats
-        /// </summary>
-        public int AvailableVacationDaysWithFloating
-        {
-            get
-            {
-                return Convert.ToInt32(Math.Floor(AvailableVacationHours / 8)) + FloatingHolidays;
-            }
-        }
-
-        /// <summary>
-        /// Days it takes to earn the next vacation day.
-        /// </summary>
-        public double DaysPerDay
-        {
-            get
-            {
-                return Math.Ceiling(8.0 / AccrualRate);
-            }
-        }
-
-        public double HoursUntilNextFullDay
-        {
-            get
-            {
-                double decimalPartOfExisting = AvailableVacationHours - Math.Floor(AvailableVacationHours);
-                double integralPartOfExisting = Math.Floor(AvailableVacationHours) % 8;
-                string[] vacationHourParts = decimalPartOfExisting.ToString().Split('.');
-                int decimalPart = 0;
-                if (vacationHourParts.Length == 2)
-                {
-                    Console.WriteLine($"{vacationHourParts[0]} - {vacationHourParts[1]}");
-                    decimalPart = int.Parse(vacationHourParts[1].Substring(0, Math.Min(3, vacationHourParts[1].Length)));
-                }
-                double hourOffset = 8 - ((integralPartOfExisting) + (double)decimalPart / Math.Pow(10, decimalPart.ToString().Length));
-                return hourOffset;
-            }
-        }
-
-        public DateTime NextEarnedDayDate
-        {
-            get
-            {
-                if (AccrualRate > 0)
-                {
-                    double daysDouble = Math.Ceiling(HoursUntilNextFullDay / AccrualRate);
-                    int daysToNextDay = 0;
-                    try
-                    {
-                        daysToNextDay = Convert.ToInt32(daysDouble);
-                    }
-                    catch (OverflowException e)
-                    {
-                        Console.WriteLine("Caught Int Parse Exception");
-                    }
-                    return DateTime.Now.AddWorkdays(daysToNextDay);
-                }
-                return DateTime.Now;
-            }
-        }
-        /// <summary>
-        /// The earliest date that you could take your next vacation based on the nubmer of days you said you needed.
-        /// Takes into account floating holidays.
-        /// </summary>
-        public DateTime NextVacationEarliestDate
-        {
-            get
-            {
-                if (DesiredDays <= AvailableVacationDaysWithFloating)
-                {
-                    return DateTime.Now;
-                }
-                // Figure out how many hours you need to get to the desired days, and then calculate days until next day and add
-                int daysLeftToEarn = DesiredDays - AvailableVacationDaysWithFloating;
-                double hoursLeftToEarn = HoursUntilNextFullDay + (daysLeftToEarn - 1) * 8;
-                int daysUntilGoal = Convert.ToInt32(Math.Ceiling(hoursLeftToEarn / AccrualRate));
-                return DateTime.Now.AddWorkdays(daysUntilGoal);
-            }
-        }
-    }
-
-    private void HandleValidSubmit()
+    public void HandleValidSubmit()
     {
         // Calculate and show the new values
     }
