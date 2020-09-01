@@ -1,0 +1,54 @@
+﻿@inject DialogService DialogService
+@using VacationCalculator.ViewModels
+
+<RadzenTemplateForm TItem="TripViewModel" Data="@model" Submit=@OnSubmit>
+    <div class="row" style="margin-bottom: 16px">
+        <div class="col-md-3">
+            <RadzenLabel Text="Name" />
+        </div>
+        <div class="col">
+            <RadzenTextBox Value="@model.Name" Name="Text" ReadOnly="true"/>
+            <RadzenRequiredValidator Text="Title is required" Component="Text" />
+        </div>
+    </div>
+    <div class="row" style="margin-bottom: 16px">
+        <div class="col-md-3">
+            <RadzenLabel Text="Start" />
+        </div>
+        <div class="col">
+            <RadzenDatePicker Value="@model.StartDate" TValue="DateTime" Name="Start" ReadOnly="true" />
+            <RadzenRequiredValidator Text="Start is required" Component="Start" />
+        </div>
+    </div>
+    <div class="row" style="margin-bottom: 16px">
+        <div class="col-md-3">
+            <RadzenLabel Text="End" />
+        </div>
+        <div class="col">
+            <RadzenDatePicker Name="End" Value="@model.EndDate" TValue="DateTime" ReadOnly="true" />
+            <RadzenRequiredValidator Component="End" Text="End is required" />
+        </div>
+    </div>
+    <div class="row">
+        <div class="col-md-3"></div>
+        <div class="col">
+            <RadzenButton ButtonType="ButtonType.Submit" Text="Close" />
+        </div>
+    </div>
+</RadzenTemplateForm>
+@code {
+    [Parameter]
+    public TripViewModel Trip { get; set; }
+
+    TripViewModel model = new TripViewModel();
+
+    protected override void OnParametersSet()
+    {
+        model = Trip;
+    }
+
+    void OnSubmit(TripViewModel model)
+    {
+        DialogService.Close(model);
+    }
+}

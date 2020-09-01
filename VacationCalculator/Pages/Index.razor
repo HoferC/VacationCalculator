@@ -1,8 +1,10 @@
 ﻿@page "/"
 @using VacationCalculator.ViewModels
+@inject DialogService DialogService
+@inject Blazored.LocalStorage.ILocalStorageService localStorage
 
 <h1>Vacation Calculator</h1>
-<EditForm Model=@vm OnValidSubmit="HandleValidSubmit">
+<EditForm EditContext=@vacationManagerContext OnValidSubmit="HandleValidSubmit">
     <h5>Current Values</h5>
     <label>
         Current Year Vacation <InputNumber @bind-Value=vm.CurrentYearVacation /> hours
@@ -27,7 +29,9 @@
         <InputRadio name="yearsOfService" SelectedValue="3" @bind-Value="vm.YearsOfService" />20+ Years
     </label>
     <p>
-        Accrual Rate (vacation hours/hour worked): @vm.AccrualRate.ToString("F2")
+        Accrual Rate (vacation hours/day worked): @vm.AccrualRate.ToString("F2")
+        <br />
+        <span class="note-disclaimer">It takes you @vm.DaysPerDay days to earn an additional vacation day.</span>
         <br />
         Cap: @vm.CapHours hours
     </p>
@@ -47,24 +51,23 @@
             <RadzenProgressBar Value=@(Convert.ToInt32(vm.AvailableVacationHours/vm.CapHours * 100)) Style="margin-bottom: 20px; max-width:50%" />
         </div>
         <p>
-            You will hit the vacation cap and stop accruing additional vacation time on <b>@vm.CapDate.ToString("d")</b> assuming constant accrual throughout the year. This isn't how it actually works most years because all vacation is earned by early November.
+            If you do not take any vacation days, you will hit the vacation cap and stop accruing additional vacation time on <b>@vm.CapDate.ToString("d")</b> assuming constant accrual throughout the year.
+            <br />
+            <span class="note-disclaimer">This isn't how it actually works most years because all vacation is earned by early November.</span>
         </p>
         <p>
             With floating holidays, you have <b>@vm.AvailableVacationDaysWithFloating days</b> of PTO for vacation.
         </p>
         <p>
-            It takes you @vm.DaysPerDay days to earn an additional vacation day.
+            Your next <em>full day</em> of vacation will be completed on @vm.NextEarnedDayDate.ToString("d") once you earn @vm.HoursUntilNextFullDay hours.
         </p>
-        <p>
-            Your next <em>full day</em> of vacation will be completed on @vm.NextEarnedDayDate.ToString("d") once you earn @vm.HoursUntilNextFullDay hours.   
-            <RadzenProgressBar Value=@((1-vm.HoursUntilNextFullDay / 8) * 100) Style="margin-bottom: 20px; max-width:50%" />
-        </p>
-        <h5>Next Vacation</h5>
-        <p>
+        <h5>Quick Calculator</h5>
+        <div>
+            <span class="note-disclaimer">Use this calculator to tell you when you will have enough PTO days for your next vacation!</span>
             <label>
                 How many days do you need for your next vacation? <InputNumber @bind-Value=vm.DesiredDays /> days
             </label>
-        </p>
+        </div>
         @if (vm.DesiredDays > 0)
         {
             @if (vm.NextVacationEarliestDate.Date == DateTime.Today)
@@ -78,21 +81,189 @@
                 <p>
                     You will have enough vacation days for your next vacation on @vm.NextVacationEarliestDate.ToString("d")!
                 </p>
-                    @if (vm.NextVacationEarliestDate.Year > DateTime.Now.Year)
-                    {
-                        <p class="note-disclaimer">Note that this date is not in the current year. You get new floating holidays at the beginning of each year, and your vacation accrual rate will change if you cross a years-of-service boundary.</p>
-                    }
+                @if (vm.NextVacationEarliestDate.Year > DateTime.Now.Year)
+                {
+                    <p class="note-disclaimer">Note that this date is not in the current year. You get new floating holidays at the beginning of each year, and your vacation accrual rate will change if you cross a years-of-service boundary.</p>
+                }
             }
         }
+
+        <p>
+            You have <b>@vm.ScheduledTripTotalDays</b> day(s) of vacation taking <b>@vm.ScheduledTripVacationDays</b> day(s) of PTO on the schedule in this app right now!
+        </p>
     }
 </EditForm>
 
+<h3>Manage Your Trips</h3>
+<RadzenTabs>
+    <Tabs>
+        <RadzenTabsItem Text="Add Trip">
+            <!-- Add new vacation form -->
+            <EditForm EditContext=@tripEditContext OnValidSubmit="HandleAddTrip">
+                <DataAnnotationsValidator />
+                <label>
+                    Name: <InputText @bind-Value="trip.Name"></InputText>
+                </label>
+                <br />
+                <label>
+                    Start Date: <RadzenDatePicker @bind-Value="trip.StartDate" DateFormat="dddd, MM/d/yy" />
+                </label>
+                <br />
+                <label>
+                    Duration: <InputNumber @bind-Value="trip.Duration" />
+                </label>
+                <br />
+                End date: @trip.EndDate.ToString("dddd, MM/d/yy")
+                <br />
+                <span class="note-disclaimer">End date is the day your vacation ends, not the first workday back.</span>
+                <br />
+                Vacation days required for trip: <b>@trip.RequiredVacationDays</b>
+                <br />
+                Return to work date: @trip.ReturnToWorkDate.ToString("dddd, MM/d/yy")
+                <br />
+                <button type="submit" disabled="@formInvalid" class="btn-primary">Add trip</button>
+            </EditForm>
+        </RadzenTabsItem>
+
+        <RadzenTabsItem Text="All Trips">
+            <RadzenGrid @ref="grid" Data="@vm.Trips" TItem="TripViewModel" AllowSorting="true">
+                <Columns>
+                    <RadzenGridColumn TItem="TripViewModel" Property="Name" Title="Trip Name" />
+                    <RadzenGridColumn TItem="TripViewModel" Property="StartDate" Title="Start Date">
+                        <Template Context="trip">
+                            @trip.StartDate.ToString("d")
+                        </Template>
+                    </RadzenGridColumn>
+                    <RadzenGridColumn TItem="TripViewModel" Property="EndDate" Title="End Date">
+                        <Template Context="trip">
+                            @trip.EndDate.ToString("d")
+                        </Template>
+                    </RadzenGridColumn>
+                    <RadzenGridColumn TItem="TripViewModel" Property="Duration" Title="Days" />
+                    <RadzenGridColumn TItem="TripViewModel" Property="RequiredVacationDays" Title="Vacation Days" />
+                    <RadzenGridColumn TItem="TripViewModel" Property="ReturnToWorkDate" Title="RTW Date">
+                        <Template Context="trip">
+                            @trip.ReturnToWorkDate.ToString("d")
+                        </Template>
+                    </RadzenGridColumn>
+                    <RadzenGridColumn TItem="TripViewModel" Context="trip" Bubble="false" Filterable="false" Sortable="false" TextAlign="TextAlign.Center" Width="70px" Title="Delete?">
+                        <Template Context="trip">
+                            <RadzenButton ButtonStyle="ButtonStyle.Danger" Icon="close" Size="ButtonSize.Small" Click="@(args => DeleteRow(trip))">
+                            </RadzenButton>
+                        </Template>
+                        <EditTemplate Context="trip">
+                            <RadzenButton ButtonStyle="ButtonStyle.Danger" Icon="close" Size="ButtonSize.Small" Click="@(args => DeleteRow(trip))">
+                            </RadzenButton>
+                        </EditTemplate>
+                    </RadzenGridColumn>
+                </Columns>
+            </RadzenGrid>
+        </RadzenTabsItem>
+        <RadzenTabsItem Text="Calendar">
+            <span class="note-disclaimer">Note that this calendar component is currently broken and may show events one day shorter than they actually are.</span>
+            <RadzenScheduler @ref="scheduler" style="height: 768px;" TItem="TripViewModel" Data="@vm.Trips"
+                             StartProperty="StartDate"
+                             EndProperty="CalendarEndDate"
+                             TextProperty="Name"
+                             AppointmentSelect="@OnAppointmentSelect"
+                             AppointmentRender="@OnAppointmentRender">
+                <RadzenMonthView />
+            </RadzenScheduler>
+        </RadzenTabsItem>
+    </Tabs>
+</RadzenTabs>
+
 @code
 {
-    VacationManagerViewModel vm = new VacationManagerViewModel();
+    private VacationManagerViewModel vm = new VacationManagerViewModel();
+    private TripViewModel trip = new TripViewModel();
+    private bool formInvalid;
+    private EditContext tripEditContext;
+    private EditContext vacationManagerContext;
 
-    public void HandleValidSubmit()
+    RadzenScheduler<TripViewModel> scheduler;
+    RadzenGrid<TripViewModel> grid;
+
+    protected override void OnInitialized()
+    {
+        base.OnInitialized();
+        tripEditContext = new EditContext(trip);
+        tripEditContext.OnFieldChanged += HandleFieldChanged;
+
+        vacationManagerContext = new EditContext(vm);
+        vacationManagerContext.OnFieldChanged += HandleVacationManagerChange;
+    }
+
+    protected override async Task OnInitializedAsync()
+    {
+        vm = await localStorage.GetItemAsync<VacationManagerViewModel>("vacationManager");
+        if (vm == null)
+        {
+            vm = new VacationManagerViewModel();
+        }
+    }
+
+    private void HandleFieldChanged(object sender, FieldChangedEventArgs e)
+    {
+        formInvalid = !tripEditContext.Validate();
+        StateHasChanged();
+    }
+
+    private async void HandleVacationManagerChange(object sender, FieldChangedEventArgs e)
+    {
+        await SaveVacationManager();
+    }
+
+    private void Dispose()
+    {
+        tripEditContext.OnFieldChanged -= HandleFieldChanged;
+        vacationManagerContext.OnFieldChanged -= HandleVacationManagerChange;
+    }
+
+    private async void HandleValidSubmit()
     {
         // Calculate and show the new values
+        await SaveVacationManager();
+    }
+
+    private async Task HandleAddTrip()
+    {
+        // Add the trip to the VacationManager, reset the trip
+        vm.AddTrip(trip);
+        trip.Reset();
+        await SaveVacationManager();
+        await scheduler.Reload();
+    }
+
+    private async Task HandleClearTrips()
+    {
+        vm.ClearTrips();
+        await SaveVacationManager();
+        await scheduler.Reload();
+    }
+
+    private async Task OnAppointmentSelect(SchedulerAppointmentSelectEventArgs<TripViewModel> args)
+    {
+        await DialogService.OpenAsync<VacationCalculator.Components.TripView>("Trip", new Dictionary<string, object> { { "Trip", args.Data } });
+
+        await scheduler.Reload();
+    }
+
+    private void OnAppointmentRender(SchedulerAppointmentRenderEventArgs<TripViewModel> args)
+    {
+        // Never call StateHasChanged in AppointmentRender - would lead to infinite loop
+        args.Attributes["style"] = "background: green";
+    }
+
+    private async Task SaveVacationManager()
+    {
+        await localStorage.SetItemAsync<VacationManagerViewModel>("vacationManager", vm);
+    }
+
+    private void DeleteRow(TripViewModel trip)
+    {
+        vm.Trips.Remove(trip);
+        scheduler.Reload();
+        grid.Reload();
     }
 }

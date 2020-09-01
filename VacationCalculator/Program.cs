@@ -7,6 +7,8 @@ using Microsoft.AspNetCore.Components.WebAssembly.Hosting;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
+using Radzen;
+using Blazored.LocalStorage;
 
 namespace VacationCalculator
 {
@@ -18,6 +20,11 @@ namespace VacationCalculator
             builder.RootComponents.Add<App>("app");
 
             builder.Services.AddTransient(sp => new HttpClient { BaseAddress = new Uri(builder.HostEnvironment.BaseAddress) });
+            // Radzen Dialog and Notification Services
+            builder.Services.AddScoped<DialogService>();
+            builder.Services.AddScoped<NotificationService>();
+            // Blazored Local Storage
+            builder.Services.AddBlazoredLocalStorage();
 
             await builder.Build().RunAsync();
         }

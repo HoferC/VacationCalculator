@@ -25,6 +25,7 @@ namespace VacationCalculator.ViewModels
         /// <summary>
         /// Gets or sets the days required for the next vacation
         /// </summary>
+        [System.Text.Json.Serialization.JsonIgnore]
         public int DesiredDays { get; set; }
 
         /// <summary>
@@ -64,7 +65,7 @@ namespace VacationCalculator.ViewModels
         }
 
         /// <summary>
-        /// The rate at which the user accrues vacation in hours-per-hour
+        /// The rate at which the user accrues vacation in vacation hours-per-day
         /// </summary>
         public double AccrualRate { get; set; }
 
@@ -108,6 +109,10 @@ namespace VacationCalculator.ViewModels
         {
             get
             {
+                if (AccrualRate <= 0)
+                {
+                    return 0;
+                }
                 return Convert.ToInt32(Math.Ceiling(8.0 / AccrualRate));
             }
         }
@@ -188,6 +193,45 @@ namespace VacationCalculator.ViewModels
                 int daysUntilCapHit = Convert.ToInt32(Math.Floor(hoursToCap / AccrualRate));
                 return DateTime.Now.AddWorkdays(daysUntilCapHit);
             }
+        }
+
+        public int ScheduledTripVacationDays
+        {
+            get
+            {
+                return Trips.Sum(t => t.RequiredVacationDays);
+            }
+        }
+
+        /// <summary>
+        /// Gets the duration of all scheduled trips
+        /// </summary>
+        public int ScheduledTripTotalDays
+        {
+            get
+            {
+                return Trips.Sum(t => t.Duration);
+            }
+        }
+
+        public List<TripViewModel> Trips { get; set; } = new List<TripViewModel>();
+
+        /// <summary>
+        /// Add a trip to the VacationManager.
+        /// </summary>
+        /// <remarks>Takes a copy of the provided TripViewModel, and does not retain references to the provided TripViewModel</remarks>
+        /// <param name="trip">The trip to add.</param>
+        public void AddTrip(TripViewModel trip)
+        {
+            Trips.Add(new TripViewModel(trip));
+        }
+
+        /// <summary>
+        /// Clears all of the trips being tracked by the TripManager.
+        /// </summary>
+        public void ClearTrips()
+        {
+            Trips.Clear();
         }
     }
 }
