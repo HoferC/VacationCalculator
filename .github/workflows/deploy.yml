@@ -23,12 +23,21 @@ jobs:
     #   run: dotnet test --no-restore --verbosity normal
     - name: Publish
       run: dotnet publish --configuration Release --no-restore
-    - name: Copy all of the site files (HTML, CSS, images) to the webserver
-      uses: appleboy/scp-action@master
+    - name: Copy published webapp 
+      uses: horochx/deploy-via-scp@master
       with:
-        host: ${{ secrets.HOST }}
-        username: ${{ secrets.USERNAME }}
-        key: ${{ secrets.KEY }}
-        port: ${{ secrets.PORT }}
-        source: "VacationCalculator/bin/Release/netstandard2.1/publish/*"
-        target: ${{ secrets.DEST }}
+        local: VacationCalculator/bin/Release/netstandard2.1/publish # eg: dist
+        remote: ${{ secrets.DEST }} # eg: /home/github-action
+        host: ${{ secrets.HOST }} # eg: example.com
+        port: ${{ secrets.PORT }} # eg: 22
+        user: ${{ secrets.USERNAME }} # eg: github-action
+        key: ${{ secrets.KEY }} # eg: -----BEGIN OPENSSH PRIVATE KEY-----\nHEIiyzh5cT7hN...
+    #- name: Copy all of the site files (HTML, CSS, images) to the webserver
+    #  uses: appleboy/scp-action@master
+    #  with:
+    #    host: ${{ secrets.HOST }}
+    #    username: ${{ secrets.USERNAME }}
+    #    key: ${{ secrets.KEY }}
+    #    port: ${{ secrets.PORT }}
+    #    source: "VacationCalculator/bin/Release/netstandard2.1/publish/*"
+    #    target: ${{ secrets.DEST }}
