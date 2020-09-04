@@ -33,7 +33,9 @@
         <br />
         <span class="note-disclaimer">It takes you @vm.DaysPerDay days to earn an additional vacation day.</span>
         <br />
-        Cap: @vm.CapHours hours
+        Earned per year: @vm.MaxEarnedHoursPerYear hours
+        <br />
+        Cap: @vm.CapHours hours (@vm.CapDays days)
     </p>
 
     <!-- <button type="submit">Submit</button> -->
@@ -54,6 +56,8 @@
             If you do not take any vacation days, you will hit the vacation cap and stop accruing additional vacation time on <b>@vm.CapDate.ToString("d")</b> assuming constant accrual throughout the year.
             <br />
             <span class="note-disclaimer">This isn't how it actually works most years because all vacation is earned by early November.</span>
+            <br />
+            You would normally earn all of your entitled vacation for the year by @vm.GetDateOfEarnedVacationHours(new DateTime(DateTime.Now.Year, 1, 1), 0, vm.MaxEarnedHoursPerYear).ToString("d")
         </p>
         <p>
             With floating holidays, you have <b>@vm.AvailableVacationDaysWithFloating days</b> of PTO for vacation.
@@ -87,14 +91,13 @@
                 }
             }
         }
-
-        <p>
-            You have <b>@vm.ScheduledTripTotalDays</b> day(s) of vacation taking <b>@vm.ScheduledTripVacationDays</b> day(s) of PTO on the schedule in this app right now!
-        </p>
     }
 </EditForm>
 
 <h3>Manage Your Trips</h3>
+<p>
+    You have <b>@vm.ScheduledTripTotalDays</b> day(s) of vacation taking <b>@vm.ScheduledTripVacationDays</b> day(s) of PTO on the schedule in this app right now!
+</p>
 <RadzenTabs>
     <Tabs>
         <RadzenTabsItem Text="Add Trip">

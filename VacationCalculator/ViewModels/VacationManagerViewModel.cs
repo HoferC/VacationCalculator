@@ -29,9 +29,25 @@ namespace VacationCalculator.ViewModels
         public int DesiredDays { get; set; }
 
         /// <summary>
-        /// Gets or sets the vacation cap in hours
+        /// Gets the vacation cap in hours
         /// </summary>
-        public int CapHours { get; set; }
+        public int CapHours { get; private set; }
+
+        /// <summary>
+        /// Gets the vacation cap in days
+        /// </summary>
+        public int CapDays
+        {
+            get
+            {
+                return CapHours / 8;
+            }
+        }
+
+        /// <summary>
+        /// Gets the maximum hours that can be earned in a year.
+        /// </summary>
+        public int MaxEarnedHoursPerYear { get; private set; }
 
         private int _yearsOfService;
         /// <summary>
@@ -51,14 +67,17 @@ namespace VacationCalculator.ViewModels
                     case 1:
                         AccrualRate = 8.0 / 15.0;
                         CapHours = 160;
+                        MaxEarnedHoursPerYear = 120;
                         break;
                     case 2:
                         AccrualRate = 8.0 / 11.25;
                         CapHours = 200;
+                        MaxEarnedHoursPerYear = 160;
                         break;
                     case 3:
                         AccrualRate = 8.0 / 9.0;
                         CapHours = 256;
+                        MaxEarnedHoursPerYear = 200;
                         break;
                 }
             }
@@ -67,7 +86,7 @@ namespace VacationCalculator.ViewModels
         /// <summary>
         /// The rate at which the user accrues vacation in vacation hours-per-day
         /// </summary>
-        public double AccrualRate { get; set; }
+        public double AccrualRate { get; private set; }
 
         /// <summary>
         /// Total hours available in current and previous year.
@@ -156,7 +175,7 @@ namespace VacationCalculator.ViewModels
                     {
                         Console.WriteLine("Caught Int Parse Exception");
                     }
-                    return DateTime.Now.AddWorkdays(daysToNextDay);
+                    return DateTime.Now.AddVacationEarningDays(daysToNextDay);
                 }
                 return DateTime.Now;
             }
@@ -178,7 +197,7 @@ namespace VacationCalculator.ViewModels
                 int daysLeftToEarn = DesiredDays - AvailableVacationDaysWithFloating;
                 double hoursLeftToEarn = HoursUntilNextFullDay + (daysLeftToEarn - 1) * 8;
                 int daysUntilGoal = Convert.ToInt32(Math.Ceiling(hoursLeftToEarn / AccrualRate));
-                return DateTime.Now.AddWorkdays(daysUntilGoal);
+                return DateTime.Now.AddVacationEarningDays(daysUntilGoal);
             }
         }
 
@@ -191,9 +210,30 @@ namespace VacationCalculator.ViewModels
             {
                 double hoursToCap = CapHours - AvailableVacationHours;
                 int daysUntilCapHit = Convert.ToInt32(Math.Floor(hoursToCap / AccrualRate));
-                return DateTime.Now.AddWorkdays(daysUntilCapHit);
+                return DateTime.Now.AddVacationEarningDays(daysUntilCapHit);
             }
         }
+
+        /// <summary>
+        /// Gets the date when the desired vacation total will be hit
+        /// </summary>
+        /// <param name="startDate">Date to start the calculation</param>
+        /// <param name="startingHours">Starting number of hours</param>
+        /// <param name="targetHours">Desired/ending number of hours</param>
+        /// <returns>Date when the vacation total will be greater than or equal to the desired count</returns>
+        public DateTime GetDateOfEarnedVacationHours(DateTime startDate, double startingHours, double targetHours)
+        {
+            double hoursToEarn = targetHours - startingHours;
+            DateTime newDate = startDate;
+            while (hoursToEarn > 0)
+            {
+                newDate = newDate.AddVacationEarningDays(1);
+                hoursToEarn -= AccrualRate;
+            }
+            return newDate;
+        }
+
+        #region Trip Management
 
         public int ScheduledTripVacationDays
         {
@@ -233,5 +273,7 @@ namespace VacationCalculator.ViewModels
         {
             Trips.Clear();
         }
+
+        #endregion
     }
 }
