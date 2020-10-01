@@ -12,8 +12,8 @@
     <PackageReference Include="Microsoft.AspNetCore.Components.WebAssembly" Version="3.2.0" />
     <PackageReference Include="Microsoft.AspNetCore.Components.WebAssembly.Build" Version="3.2.0" PrivateAssets="all" />
     <PackageReference Include="Microsoft.AspNetCore.Components.WebAssembly.DevServer" Version="3.2.0" PrivateAssets="all" />
-    <PackageReference Include="PublicHoliday" Version="2.1.0" />
-    <PackageReference Include="Radzen.Blazor" Version="2.11.14" />
+    <PackageReference Include="PublicHoliday" Version="2.2.0" />
+    <PackageReference Include="Radzen.Blazor" Version="2.15.5" />
     <PackageReference Include="System.Net.Http.Json" Version="3.2.0" />
   </ItemGroup>
 
