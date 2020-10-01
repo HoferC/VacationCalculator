@@ -17,6 +17,8 @@ jobs:
         dotnet-version: 3.1.301
     - name: Install dependencies
       run: dotnet restore
+    - name: Inject build name into footer
+      run: sed -i 's/++VERSION_HERE++/'$GITHUB_SHA'/g' VacationCalculator/Pages/Index.razor
     - name: Build
       run: dotnet build --configuration Release --no-restore
     # - name: Test
