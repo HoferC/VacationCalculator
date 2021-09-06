@@ -53,11 +53,11 @@
             <RadzenProgressBar Value=@(Convert.ToInt32(vm.AvailableVacationHours/vm.CapHours * 100)) Style="margin-bottom: 20px; max-width:50%" />
         </div>
         <p>
-            If you do not take any vacation days, you will hit the vacation cap and stop accruing additional vacation time on <b>@vm.CapDate.ToString("d")</b> assuming constant accrual throughout the year.
+            If you do not take any vacation days, you will stop accruing additional vacation time on <b>@vm.CapDate.ToString("d")</b>.
             <br />
-            <span class="note-disclaimer">This isn't how it actually works most years because all vacation is earned by early November.</span>
+            At that time, you will have @String.Format("{0:F2}", vm.GetHoursOnDate(DateTime.Today, vm.AvailableVacationHours, vm.CapDate)) hours of vacation time.
             <br />
-            You would normally earn all of your entitled vacation for the year by @vm.GetDateOfEarnedVacationHours(new DateTime(DateTime.Now.Year, 1, 1), 0, vm.MaxEarnedHoursPerYear).ToString("d")
+            You would normally earn all of your entitled vacation for the year by @vm.AccrualEndDate.ToString("d")
         </p>
         <p>
             With floating holidays, you have <b>@vm.AvailableVacationDaysWithFloating days</b> of PTO for vacation.
@@ -68,6 +68,7 @@
         <h5>Quick Calculator</h5>
         <div>
             <span class="note-disclaimer">Use this calculator to tell you when you will have enough PTO days for your next vacation!</span>
+            <br />
             <label>
                 How many days do you need for your next vacation? <InputNumber @bind-Value=vm.DesiredDays /> days
             </label>

@@ -89,6 +89,17 @@ namespace VacationCalculator.ViewModels
         public double AccrualRate { get; private set; }
 
         /// <summary>
+        /// Gets the date when accrual would stop assuming you take no vacation
+        /// </summary>
+        public DateTime AccrualEndDate
+        {
+            get
+            {
+                return GetDateOfEarnedVacationHours(new DateTime(DateTime.Now.Year, 1, 1), 0, MaxEarnedHoursPerYear);
+            }
+        }
+
+        /// <summary>
         /// Total hours available in current and previous year.
         /// </summary>
         public double AvailableVacationHours
@@ -210,7 +221,7 @@ namespace VacationCalculator.ViewModels
             {
                 double hoursToCap = CapHours - AvailableVacationHours;
                 int daysUntilCapHit = Convert.ToInt32(Math.Floor(hoursToCap / AccrualRate));
-                return DateTime.Now.AddVacationEarningDays(daysUntilCapHit);
+                return DateTime.Compare(AccrualEndDate, DateTime.Now.AddVacationEarningDays(daysUntilCapHit)) == -1 ? AccrualEndDate : DateTime.Now.AddVacationEarningDays(daysUntilCapHit);
             }
         }
 
@@ -231,6 +242,25 @@ namespace VacationCalculator.ViewModels
                 hoursToEarn -= AccrualRate;
             }
             return newDate;
+        }
+
+        /// <summary>
+        /// Gets the number of hours of vacation that will be available on a given date
+        /// </summary>
+        /// <param name="startDate">Date to start the calculation</param>
+        /// <param name="startingHours">Starting number of current/previous hours</param>
+        /// <param name="goalDate">The target date to measure to</param>
+        /// <returns></returns>
+        public double GetHoursOnDate(DateTime startDate, double startingHours, DateTime goalDate)
+        {
+            int vacationEarningDays = 0;
+            DateTime newDate = startDate;
+            while (newDate < goalDate)
+            {
+                newDate = newDate.AddVacationEarningDays(1);
+                vacationEarningDays++;
+            }
+            return Math.Min(startingHours + vacationEarningDays * AccrualRate, CapHours);
         }
 
         #region Trip Management
